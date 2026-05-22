@@ -169,8 +169,8 @@ export default function ChessGame() {
           )}
         </div>
 
-        <div className="border-4 border-zinc-800 rounded-lg overflow-hidden">
-          <div className="grid grid-cols-8 w-[360px] h-[360px] sm:w-[560px] sm:h-[560px]">
+        <div className="border-4 border-zinc-800 rounded-lg overflow-hidden w-[320px] sm:w-[512px]">
+          <div className="grid grid-cols-8">
             {board.map((row, r) =>
               row.map((piece, c) => {
                 const squareName = `${String.fromCharCode(97 + c)}${8 - r}`;
@@ -181,14 +181,15 @@ export default function ChessGame() {
                   <div
                     key={squareName}
                     onClick={() => handleSquareClick(squareName)}
+                    style={{ fontSize: "clamp(14px, 5vw, 44px)" }}
                     className={`
-                      flex items-center justify-center text-3xl sm:text-5xl cursor-pointer select-none transition-colors
+                      aspect-square flex items-center justify-center cursor-pointer select-none transition-colors
                       ${isLight ? "bg-zinc-700" : "bg-zinc-900"}
-                      ${isSelected ? "bg-white/30" : "hover:bg-white/10"}
+                      ${isSelected ? "!bg-white/30" : "hover:bg-white/10"}
                     `}
                     data-testid={`square-${squareName}`}
                   >
-                    <span style={{ color: piece === piece.toUpperCase() && piece !== "" ? "#fff" : "#888", textShadow: "0 1px 3px rgba(0,0,0,0.8)" }}>
+                    <span style={{ color: piece === piece.toUpperCase() && piece !== "" ? "#fff" : "#888", lineHeight: 1 }}>
                       {pieceToUnicode(piece)}
                     </span>
                   </div>
