@@ -7,6 +7,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { ChevronLeft, Users, ShieldAlert } from "lucide-react";
 
+function getErrMsg(err: unknown): string {
+  return (err as any)?.response?.data?.error ?? "Something went wrong";
+}
+
 export default function RoomView() {
   const { game, code } = useParams<{ game: string; code: string }>();
   const [, setLocation] = useLocation();
@@ -16,6 +20,7 @@ export default function RoomView() {
 
   const { data: room, isLoading } = useGetRoom(code || "", {
     query: {
+      queryKey: getGetRoomQueryKey(code || ""),
       enabled: !!code,
       refetchInterval: 5000,
     }
@@ -34,13 +39,12 @@ export default function RoomView() {
           queryClient.invalidateQueries({ queryKey: getGetRoomQueryKey(code) });
           setLocation(`/rooms/${game}`);
         },
-        onError: (err) => toast({ variant: "destructive", title: "Error", description: err.error })
+        onError: (err) => toast({ variant: "destructive", title: "Error", description: getErrMsg(err) })
       }
     );
   };
 
   const handleLeave = () => {
-    // In a real app we'd have a leave room mutation, but for this spec we can just navigate away
     setLocation(`/rooms/${game}`);
   };
 

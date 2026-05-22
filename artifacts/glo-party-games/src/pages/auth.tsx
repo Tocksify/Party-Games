@@ -10,6 +10,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { ChevronLeft } from "lucide-react";
 
+function getErrMsg(err: unknown): string {
+  return (err as any)?.response?.data?.error ?? "Something went wrong";
+}
+
 export default function Auth() {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
@@ -37,7 +41,7 @@ export default function Auth() {
     e.preventDefault();
     loginMutation.mutate(
       { data: { email: loginEmail, password: loginPassword } },
-      { onSuccess, onError: (err) => toast({ variant: "destructive", title: "Login failed", description: err.error }) }
+      { onSuccess, onError: (err) => toast({ variant: "destructive", title: "Login failed", description: getErrMsg(err) }) }
     );
   };
 
@@ -45,7 +49,7 @@ export default function Auth() {
     e.preventDefault();
     registerMutation.mutate(
       { data: { username: regUsername, email: regEmail, password: regPassword } },
-      { onSuccess, onError: (err) => toast({ variant: "destructive", title: "Registration failed", description: err.error }) }
+      { onSuccess, onError: (err) => toast({ variant: "destructive", title: "Registration failed", description: getErrMsg(err) }) }
     );
   };
 
@@ -53,7 +57,7 @@ export default function Auth() {
     e.preventDefault();
     guestMutation.mutate(
       { data: { username: guestUsername } },
-      { onSuccess, onError: (err) => toast({ variant: "destructive", title: "Guest login failed", description: err.error }) }
+      { onSuccess, onError: (err) => toast({ variant: "destructive", title: "Guest login failed", description: getErrMsg(err) }) }
     );
   };
 

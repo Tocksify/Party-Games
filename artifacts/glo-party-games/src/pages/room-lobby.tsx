@@ -9,7 +9,12 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { ChevronLeft, Plus, LogIn, Users } from "lucide-react";
-import { ListRoomsGame, RoomInputGame } from "@workspace/api-client-react/src/generated/api.schemas";
+
+type GameSlug = "the-signal" | "thread" | "blackbox";
+
+function getErrMsg(err: unknown): string {
+  return (err as any)?.response?.data?.error ?? "Something went wrong";
+}
 
 export default function RoomLobby() {
   const { game } = useParams<{ game: string }>();
@@ -18,11 +23,12 @@ export default function RoomLobby() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const validGame = game as ListRoomsGame;
+  const validGame = game as GameSlug;
+  const listParams = { game: validGame, status: "waiting" as const };
 
   const { data: rooms = [], isLoading } = useListRooms(
-    { game: validGame, status: "waiting" },
-    { query: { enabled: !!validGame } }
+    listParams,
+    { query: { queryKey: getListRoomsQueryKey(listParams), enabled: !!validGame } }
   );
 
   const createRoom = useCreateRoom();
@@ -42,13 +48,13 @@ export default function RoomLobby() {
       return;
     }
     createRoom.mutate(
-      { data: { game: validGame as RoomInputGame, name: newRoomName, maxPlayers: parseInt(newRoomPlayers, 10) } },
+      { data: { game: validGame, name: newRoomName, maxPlayers: parseInt(newRoomPlayers, 10) } },
       {
         onSuccess: (room) => {
-          queryClient.invalidateQueries({ queryKey: getListRoomsQueryKey({ game: validGame, status: "waiting" }) });
+          queryClient.invalidateQueries({ queryKey: getListRoomsQueryKey(listParams) });
           setLocation(`/rooms/${validGame}/${room.code}`);
         },
-        onError: (err) => toast({ variant: "destructive", title: "Error", description: err.error })
+        onError: (err) => toast({ variant: "destructive", title: "Error", description: getErrMsg(err) })
       }
     );
   };
@@ -57,11 +63,10 @@ export default function RoomLobby() {
     e.preventDefault();
     if (!joinCode.trim()) return;
     
-    // Parse IP:port if needed
-    let code = joinCode.trim();
+    let code = joinCode.trim().toUpperCase();
     if (code.includes(":")) {
       const parts = code.split(":");
-      code = parts[parts.length - 1]; // Just use the port/last part as code
+      code = parts[parts.length - 1];
     }
 
     joinRoom.mutate(
@@ -70,12 +75,12 @@ export default function RoomLobby() {
         onSuccess: () => {
           setLocation(`/rooms/${validGame}/${code}`);
         },
-        onError: (err) => toast({ variant: "destructive", title: "Error", description: err.error })
+        onError: (err) => toast({ variant: "destructive", title: "Error", description: getErrMsg(err) })
       }
     );
   };
 
-  const gameTitle = game?.replace("-", " ").toUpperCase() || "LOBBY";
+  const gameTitle = game?.replace(/-/g, " ").toUpperCase() || "LOBBY";
 
   return (
     <PageTransition className="min-h-screen p-6 md:p-12 max-w-5xl mx-auto flex flex-col relative z-10">
@@ -104,7 +109,7 @@ export default function RoomLobby() {
           <div className="p-6 bg-card/60 border border-white/10 rounded-xl">
             <form onSubmit={handleJoinByCode} className="flex gap-4">
               <Input
-                placeholder="Enter Room Code"
+                placeholder="Enter Room Code or IP:Code"
                 value={joinCode}
                 onChange={(e) => setJoinCode(e.target.value)}
                 className="flex-1"
@@ -166,7 +171,7 @@ export default function RoomLobby() {
                           { code: room.code, data: {} },
                           {
                             onSuccess: () => setLocation(`/rooms/${validGame}/${room.code}`),
-                            onError: (err) => toast({ variant: "destructive", title: "Error", description: err.error })
+                            onError: (err) => toast({ variant: "destructive", title: "Error", description: getErrMsg(err) })
                           }
                         );
                       }}

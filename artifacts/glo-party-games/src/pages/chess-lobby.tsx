@@ -5,7 +5,11 @@ import { PageTransition } from "@/components/page-transition";
 import { SoundButton } from "@/components/sound-button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { ChevronLeft, Swords, Play } from "lucide-react";
+import { ChevronLeft, Swords } from "lucide-react";
+
+function getErrMsg(err: unknown): string {
+  return (err as any)?.response?.data?.error ?? "Something went wrong";
+}
 
 export default function ChessLobby() {
   const [, setLocation] = useLocation();
@@ -14,7 +18,10 @@ export default function ChessLobby() {
   const queryClient = useQueryClient();
 
   const { data: games = [], isLoading } = useListChessGames({
-    query: { refetchInterval: 5000 }
+    query: {
+      queryKey: getListChessGamesQueryKey(),
+      refetchInterval: 5000,
+    }
   });
 
   const openGame = useOpenChessGame();
@@ -31,7 +38,7 @@ export default function ChessLobby() {
         queryClient.invalidateQueries({ queryKey: getListChessGamesQueryKey() });
         setLocation(`/chess/${game.id}`);
       },
-      onError: (err) => toast({ variant: "destructive", title: "Error", description: err.error })
+      onError: (err) => toast({ variant: "destructive", title: "Error", description: getErrMsg(err) })
     });
   };
 
@@ -47,7 +54,7 @@ export default function ChessLobby() {
           queryClient.invalidateQueries({ queryKey: getListChessGamesQueryKey() });
           toast({ title: "Request Sent", description: "Waiting for host to accept..." });
         },
-        onError: (err) => toast({ variant: "destructive", title: "Error", description: err.error })
+        onError: (err) => toast({ variant: "destructive", title: "Error", description: getErrMsg(err) })
       }
     );
   };
@@ -139,7 +146,7 @@ export default function ChessLobby() {
   );
 }
 
-function PlusIcon(props: any) {
+function PlusIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
   );

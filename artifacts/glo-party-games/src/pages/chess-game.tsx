@@ -8,6 +8,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { ChevronLeft } from "lucide-react";
 
+function getErrMsg(err: unknown): string {
+  return (err as any)?.response?.data?.error ?? "Something went wrong";
+}
+
 export default function ChessGame() {
   const { id } = useParams<{ id: string }>();
   const gameId = parseInt(id || "0", 10);
@@ -18,6 +22,7 @@ export default function ChessGame() {
 
   const { data: game, isLoading } = useGetChessGame(gameId, {
     query: {
+      queryKey: getGetChessGameQueryKey(gameId),
       enabled: !!gameId,
       refetchInterval: 2000,
     }
@@ -40,8 +45,6 @@ export default function ChessGame() {
     if (!selectedSquare) {
       setSelectedSquare(square);
     } else {
-      // In a real algebraic notation, we'd need to convert selectedSquare to square (e.g. e2e4).
-      // For this simplified frontend, we'll just send the start and end concatted.
       const moveStr = `${selectedSquare}${square}`;
       makeMove.mutate(
         { id: gameId, data: { move: moveStr } },
@@ -51,7 +54,7 @@ export default function ChessGame() {
             setSelectedSquare(null);
           },
           onError: (err) => {
-            toast({ variant: "destructive", title: "Invalid Move", description: err.error });
+            toast({ variant: "destructive", title: "Invalid Move", description: getErrMsg(err) });
             setSelectedSquare(null);
           }
         }
@@ -59,7 +62,6 @@ export default function ChessGame() {
     }
   };
 
-  // Simple FEN parser to draw board
   const board = parseFen(game.fen || "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
   const isWhite = user?.username === game.hostUsername;
   const isTurn = (isWhite && game.currentTurn === 'white') || (!isWhite && game.currentTurn === 'black');
@@ -106,12 +108,12 @@ export default function ChessGame() {
                     className={`
                       flex items-center justify-center text-4xl sm:text-6xl cursor-pointer select-none transition-colors
                       ${isLight ? 'bg-[#D18B47]/20' : 'bg-[#FFCE9E]/20'}
-                      ${isSelected ? 'bg-primary/50 inset-shadow' : ''}
+                      ${isSelected ? 'bg-primary/50' : ''}
                       hover:bg-white/20
                     `}
                     data-testid={`square-${squareName}`}
                   >
-                    <span className="drop-shadow-lg" style={{ color: piece === piece.toUpperCase() ? '#fff' : '#000', textShadow: piece === piece.toUpperCase() ? '0 0 5px rgba(255,255,255,0.5)' : '0 0 5px rgba(255,255,255,0.2)' }}>
+                    <span className="drop-shadow-lg" style={{ color: piece === piece.toUpperCase() && piece !== '' ? '#fff' : '#aaa', textShadow: '0 0 5px rgba(255,255,255,0.3)' }}>
                       {pieceToUnicode(piece)}
                     </span>
                   </div>
@@ -125,7 +127,6 @@ export default function ChessGame() {
   );
 }
 
-// Simple utils for rendering board
 function parseFen(fen: string): string[][] {
   const [position] = fen.split(' ');
   const rows = position.split('/');
