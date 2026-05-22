@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { chessGamesTable, usersTable } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { RespondChessRequestBody, MakeChessMoveBody } from "@workspace/api-zod";
 import { requireAuth } from "../middleware/auth";
 
@@ -23,7 +23,7 @@ function formatGame(game: typeof chessGamesTable.$inferSelect) {
 
 router.get("/chess/games", async (req, res) => {
   const games = await db.select().from(chessGamesTable)
-    .where(eq(chessGamesTable.status, "open"))
+    .where(inArray(chessGamesTable.status, ["open", "pending"]))
     .orderBy(chessGamesTable.createdAt);
   res.json(games.map(formatGame));
 });
@@ -37,12 +37,12 @@ router.post("/chess/games", requireAuth, async (req, res) => {
     return;
   }
 
-  const existing = await db.select().from(chessGamesTable)
-    .where(and(eq(chessGamesTable.hostUserId, userId), eq(chessGamesTable.status, "open")));
-  if (existing.length > 0) {
-    res.status(409).json({ error: "You already have an open game" });
-    return;
-  }
+  await db.update(chessGamesTable)
+    .set({ status: "withdrawn" })
+    .where(and(
+      eq(chessGamesTable.hostUserId, userId),
+      inArray(chessGamesTable.status, ["open", "pending"]),
+    ));
 
   const [game] = await db.insert(chessGamesTable).values({
     hostUserId: userId,
@@ -53,6 +53,17 @@ router.post("/chess/games", requireAuth, async (req, res) => {
   }).returning();
 
   res.status(201).json(formatGame(game));
+});
+
+router.delete("/chess/games/mine", requireAuth, async (req, res) => {
+  const userId = req.userId!;
+  await db.update(chessGamesTable)
+    .set({ status: "withdrawn" })
+    .where(and(
+      eq(chessGamesTable.hostUserId, userId),
+      inArray(chessGamesTable.status, ["open", "pending"]),
+    ));
+  res.json({ message: "Games withdrawn" });
 });
 
 router.get("/chess/games/:id", async (req, res) => {
