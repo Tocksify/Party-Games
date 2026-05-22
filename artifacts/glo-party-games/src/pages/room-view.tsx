@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { useLocation, useParams } from "wouter";
 import { useGetRoom, useCloseRoom, getGetRoomQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -30,8 +31,41 @@ export default function RoomView() {
 
   const isHost = user && room && user.username === room.hostUsername;
 
+  const isHostRef = useRef(false);
+  const codeRef = useRef(code);
+  const roomStatusRef = useRef(room?.status);
+  const alreadyClosedRef = useRef(false);
+
+  useEffect(() => { isHostRef.current = !!isHost; }, [isHost]);
+  useEffect(() => { codeRef.current = code; }, [code]);
+  useEffect(() => { roomStatusRef.current = room?.status; }, [room?.status]);
+
+  const doCloseRoom = () => {
+    const currentCode = codeRef.current;
+    if (!currentCode || alreadyClosedRef.current || !isHostRef.current) return;
+    if (roomStatusRef.current && roomStatusRef.current !== "waiting") return;
+    alreadyClosedRef.current = true;
+
+    const apiBase = (import.meta.env.VITE_API_URL ?? "").replace(/\/+$/, "");
+    fetch(`${apiBase}/api/rooms/${currentCode}`, {
+      method: "DELETE",
+      credentials: "include",
+      keepalive: true,
+    }).catch(() => {});
+  };
+
+  useEffect(() => {
+    const handleBeforeUnload = () => doCloseRoom();
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      doCloseRoom();
+    };
+  }, []);
+
   const handleClose = () => {
     if (!code) return;
+    alreadyClosedRef.current = true;
     closeRoom.mutate(
       { code },
       {
@@ -39,7 +73,10 @@ export default function RoomView() {
           queryClient.invalidateQueries({ queryKey: getGetRoomQueryKey(code) });
           setLocation(`/rooms/${game}`);
         },
-        onError: (err) => toast({ variant: "destructive", title: "Error", description: getErrMsg(err) })
+        onError: (err) => {
+          alreadyClosedRef.current = false;
+          toast({ variant: "destructive", title: "Error", description: getErrMsg(err) });
+        }
       }
     );
   };
