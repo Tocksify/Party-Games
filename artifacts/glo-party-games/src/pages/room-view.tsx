@@ -41,10 +41,12 @@ export default function RoomView() {
     if (!currentCode || alreadyClosedRef.current) return;
     alreadyClosedRef.current = true;
     const apiBase = (import.meta.env.VITE_API_URL ?? "").replace(/\/+$/, "");
+    const token = localStorage.getItem("auth_token");
     fetch(`${apiBase}/api/rooms/${currentCode}`, {
       method: "DELETE",
       credentials: "include",
       keepalive: true,
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
     }).catch(() => {});
   };
 
@@ -61,10 +63,12 @@ export default function RoomView() {
     if (!code) return;
     setIsStarting(true);
     const apiBase = (import.meta.env.VITE_API_URL ?? "").replace(/\/+$/, "");
+    const token = localStorage.getItem("auth_token");
     try {
       const res = await fetch(`${apiBase}/api/rooms/${code}/start`, {
         method: "POST",
         credentials: "include",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
