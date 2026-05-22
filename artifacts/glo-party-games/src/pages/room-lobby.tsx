@@ -99,9 +99,11 @@ export default function RoomLobby() {
   useEffect(() => {
     if (!isAuthenticated || !user) return;
     const apiBase = (import.meta.env.VITE_API_URL ?? "").replace(/\/+$/, "");
+    const token = localStorage.getItem("auth_token");
     fetch(`${apiBase}/api/rooms/mine?game=${validGame}`, {
       method: "DELETE",
       credentials: "include",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
     }).catch(() => {});
   }, [isAuthenticated, user?.id, validGame]);
 
