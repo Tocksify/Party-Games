@@ -28,7 +28,6 @@ export default function RoomView() {
   });
 
   const closeRoom = useCloseRoom();
-
   const isHost = user && room && user.username === room.hostUsername;
 
   const isHostRef = useRef(false);
@@ -45,7 +44,6 @@ export default function RoomView() {
     if (!currentCode || alreadyClosedRef.current || !isHostRef.current) return;
     if (roomStatusRef.current && roomStatusRef.current !== "waiting") return;
     alreadyClosedRef.current = true;
-
     const apiBase = (import.meta.env.VITE_API_URL ?? "").replace(/\/+$/, "");
     fetch(`${apiBase}/api/rooms/${currentCode}`, {
       method: "DELETE",
@@ -87,84 +85,82 @@ export default function RoomView() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center font-mono text-muted-foreground animate-pulse">
-        CONNECTING TO ROOM...
+      <div className="min-h-screen bg-black flex items-center justify-center font-mono text-zinc-600 text-sm animate-pulse">
+        Connecting...
       </div>
     );
   }
 
   if (!room) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center font-mono text-destructive gap-4">
-        <div>ROOM NOT FOUND OR DISCONNECTED</div>
-        <SoundButton onClick={() => setLocation(`/rooms/${game}`)}>RETURN TO LOBBY</SoundButton>
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center font-mono text-red-500 gap-4">
+        <div className="text-sm">Room not found or closed.</div>
+        <SoundButton onClick={() => setLocation(`/rooms/${game}`)} className="bg-white text-black">Back to Lobby</SoundButton>
       </div>
     );
   }
 
   return (
-    <PageTransition className="min-h-screen p-6 md:p-12 max-w-6xl mx-auto flex flex-col relative z-10">
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-12">
-        <div className="flex items-center gap-4">
-          <SoundButton variant="ghost" size="icon" onClick={handleLeave} data-testid="button-back">
-            <ChevronLeft className="w-6 h-6" />
+    <PageTransition className="min-h-screen bg-black p-6 md:p-12 max-w-6xl mx-auto flex flex-col relative z-10">
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10">
+        <div className="flex items-center gap-3">
+          <SoundButton variant="ghost" size="icon" onClick={handleLeave} className="text-zinc-400 hover:bg-zinc-900" data-testid="button-back">
+            <ChevronLeft className="w-5 h-5" />
           </SoundButton>
           <div>
-            <h1 className="text-3xl font-bold font-mono tracking-widest text-primary">{room.name}</h1>
-            <div className="text-sm font-mono text-muted-foreground mt-1">
-              GAME: {room.game.toUpperCase()} • CODE: <span className="text-white bg-white/10 px-2 py-0.5 rounded">{room.code}</span>
+            <h1 className="text-2xl font-bold font-mono tracking-widest text-white">{room.name}</h1>
+            <div className="text-xs font-mono text-zinc-600 mt-0.5">
+              {room.game.toUpperCase()} • Code: <span className="text-zinc-400 bg-zinc-900 px-1.5 py-0.5 rounded">{room.code}</span>
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-4">
-          <SoundButton variant="outline" onClick={handleLeave} data-testid="button-leave">
-            LEAVE
+        <div className="flex items-center gap-3">
+          <SoundButton variant="outline" onClick={handleLeave} className="border-zinc-800 text-zinc-400 hover:border-zinc-600" data-testid="button-leave">
+            Leave
           </SoundButton>
           {isHost && (
-            <SoundButton 
-              variant="destructive" 
+            <SoundButton
+              variant="destructive"
               onClick={handleClose}
               disabled={closeRoom.isPending}
               data-testid="button-close-room"
             >
-              <ShieldAlert className="w-4 h-4 mr-2" /> CLOSE ROOM
+              <ShieldAlert className="w-4 h-4 mr-2" /> Close Room
             </SoundButton>
           )}
         </div>
       </header>
 
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 p-8 bg-card/40 border border-white/5 rounded-xl backdrop-blur-sm flex flex-col items-center justify-center min-h-[400px]">
-          <div className="text-center space-y-6">
-            <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-primary/10 text-primary border border-primary/20 mb-4 animate-pulse">
-              <Users className="w-10 h-10" />
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 p-8 bg-zinc-900 border border-zinc-800 rounded-xl flex flex-col items-center justify-center min-h-[360px]">
+          <div className="text-center space-y-4">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-zinc-800 text-zinc-400 border border-zinc-700 mb-2">
+              <Users className="w-7 h-7" />
             </div>
-            <h2 className="text-2xl font-bold tracking-widest text-foreground">AWAITING PLAYERS</h2>
-            <div className="text-muted-foreground font-mono">
-              Waiting for host to initiate the game sequence...
+            <h2 className="text-xl font-bold tracking-widest text-white">Waiting for players</h2>
+            <div className="text-zinc-600 font-mono text-sm">
+              Host starts the game when everyone is ready.
             </div>
-            <div className="mt-8 font-mono text-sm bg-black/50 p-4 rounded border border-white/5 inline-block">
-              {room.playerCount} / {room.maxPlayers} CONNECTED
+            <div className="mt-6 font-mono text-sm bg-black px-5 py-3 rounded border border-zinc-800 inline-block text-zinc-400">
+              {room.playerCount} / {room.maxPlayers} players
             </div>
           </div>
         </div>
 
-        <div className="space-y-8">
-          <div className="p-6 bg-card/40 border border-white/5 rounded-xl">
-            <h3 className="font-bold tracking-widest text-muted-foreground mb-4 text-sm">ROOM INFO</h3>
-            <div className="space-y-4 font-mono text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">HOST</span>
-                <span className="text-primary">{room.hostUsername}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">STATUS</span>
-                <span className="text-foreground">{room.status.toUpperCase()}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">CREATED</span>
-                <span className="text-foreground">{new Date(room.createdAt).toLocaleTimeString()}</span>
-              </div>
+        <div className="p-5 bg-zinc-900 border border-zinc-800 rounded-xl h-fit">
+          <h3 className="font-mono text-xs tracking-widest text-zinc-600 mb-4 uppercase">Room Info</h3>
+          <div className="space-y-3 font-mono text-sm">
+            <div className="flex justify-between">
+              <span className="text-zinc-600">Host</span>
+              <span className="text-white">{room.hostUsername}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-zinc-600">Status</span>
+              <span className="text-zinc-400">{room.status}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-zinc-600">Created</span>
+              <span className="text-zinc-400">{new Date(room.createdAt).toLocaleTimeString()}</span>
             </div>
           </div>
         </div>
