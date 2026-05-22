@@ -3,10 +3,17 @@ import { db } from "@workspace/db";
 import { roomsTable, usersTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import crypto from "crypto";
-import { ListRoomsQueryParams, CreateRoomBody } from "@workspace/api-zod";
+import { ListRoomsQueryParams } from "@workspace/api-zod";
 import { requireAuth } from "../middleware/auth";
+import zod from "zod";
 
 const router = Router();
+
+const CreateRoomBody = zod.object({
+  game: zod.enum(["the-signal", "thread", "blackbox"]),
+  maxPlayers: zod.number().min(2).max(10),
+  settings: zod.record(zod.string(), zod.unknown()).optional(),
+});
 
 function formatRoom(room: typeof roomsTable.$inferSelect) {
   return {
@@ -54,7 +61,7 @@ router.post("/rooms", requireAuth, async (req, res) => {
     res.status(400).json({ error: "Invalid input" });
     return;
   }
-  const { game, name, maxPlayers, settings } = parse.data;
+  const { game, maxPlayers, settings } = parse.data;
 
   const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
   if (!user) {
@@ -62,11 +69,15 @@ router.post("/rooms", requireAuth, async (req, res) => {
     return;
   }
 
+  await db.update(roomsTable)
+    .set({ status: "closed" })
+    .where(and(eq(roomsTable.hostUserId, userId), eq(roomsTable.status, "waiting")));
+
   const code = generateCode();
   const [room] = await db.insert(roomsTable).values({
     code,
     game,
-    name,
+    name: user.username,
     hostUserId: userId,
     hostUsername: user.username,
     maxPlayers,
@@ -76,6 +87,22 @@ router.post("/rooms", requireAuth, async (req, res) => {
   }).returning();
 
   res.status(201).json(formatRoom(room));
+});
+
+router.delete("/rooms/mine", requireAuth, async (req, res) => {
+  const userId = req.userId!;
+  const game = req.query["game"] as string | undefined;
+
+  const conditions: ReturnType<typeof eq>[] = [
+    eq(roomsTable.hostUserId, userId),
+    eq(roomsTable.status, "waiting"),
+  ];
+  if (game) {
+    conditions.push(eq(roomsTable.game, game as any));
+  }
+
+  await db.update(roomsTable).set({ status: "closed" }).where(and(...conditions));
+  res.json({ message: "Rooms closed" });
 });
 
 router.get("/rooms/:code", async (req, res) => {
