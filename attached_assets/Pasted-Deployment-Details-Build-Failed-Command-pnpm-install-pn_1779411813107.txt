@@ -1,0 +1,73 @@
+Deployment Details
+Build Failed
+Command " pnpm install && pnpm run typecheck:libs && pnpm --filter @workspace/glo-party-games run build" exited with 1
+Created
+tocksify-9962 Avatar
+tocksify-9962
+Just now
+Status
+Error
+Latest
+Duration
+22s
+Just now
+Environment
+Production
+Domains
+party-games-api-server-git-main-tocksifygmailcoms-projects.vercel.app
+party-games-api-server-agfacvs9s-tocksifygmailcoms-projects.vercel.app
+Source
+main
+3dd73b3
+Improve error handling and query management across game pages
+
+Deployment Settings
+3 Recommendations
+Build Logs
+22s
+68 lines
+Find in logs
+CtrlF
+21:03:12.493 
+> workspace@0.0.0 typecheck:libs /vercel/path0
+21:03:12.493 
+> tsc --build
+21:03:12.493 
+21:03:16.861 
+21:03:16.862 
+> @workspace/glo-party-games@0.0.0 build /vercel/path0/artifacts/glo-party-games
+21:03:16.862 
+> vite build --config vite.config.ts
+21:03:16.862 
+21:03:17.190 
+failed to load config from /vercel/path0/artifacts/glo-party-games/vite.config.ts
+21:03:17.193 
+error during build:
+21:03:17.193 
+Error: PORT environment variable is required but was not provided.
+21:03:17.194 
+    at file:///vercel/path0/artifacts/glo-party-games/node_modules/.vite-temp/vite.config.ts.timestamp-1779411797056-abbe3895bf6bc8.mjs:10:9
+21:03:17.194 
+    at ModuleJob.run (node:internal/modules/esm/module_job:437:25)
+21:03:17.194 
+    at async node:internal/modules/esm/loader:639:26
+21:03:17.194 
+    at async loadConfigFromBundledFile (file:///vercel/path0/node_modules/.pnpm/vite@7.3.3_@types+node@25.6.2_jiti@2.7.0_lightningcss@1.32.0_tsx@4.21.0_yaml@2.8.4/node_modules/vite/dist/node/chunks/config.js:35936:12)
+21:03:17.194 
+    at async bundleAndLoadConfigFile (file:///vercel/path0/node_modules/.pnpm/vite@7.3.3_@types+node@25.6.2_jiti@2.7.0_lightningcss@1.32.0_tsx@4.21.0_yaml@2.8.4/node_modules/vite/dist/node/chunks/config.js:35824:17)
+21:03:17.195 
+    at async loadConfigFromFile (file:///vercel/path0/node_modules/.pnpm/vite@7.3.3_@types+node@25.6.2_jiti@2.7.0_lightningcss@1.32.0_tsx@4.21.0_yaml@2.8.4/node_modules/vite/dist/node/chunks/config.js:35791:42)
+21:03:17.195 
+    at async resolveConfig (file:///vercel/path0/node_modules/.pnpm/vite@7.3.3_@types+node@25.6.2_jiti@2.7.0_lightningcss@1.32.0_tsx@4.21.0_yaml@2.8.4/node_modules/vite/dist/node/chunks/config.js:35440:22)
+21:03:17.195 
+    at async createBuilder (file:///vercel/path0/node_modules/.pnpm/vite@7.3.3_@types+node@25.6.2_jiti@2.7.0_lightningcss@1.32.0_tsx@4.21.0_yaml@2.8.4/node_modules/vite/dist/node/chunks/config.js:33895:19)
+21:03:17.195 
+    at async CAC.<anonymous> (file:///vercel/path0/node_modules/.pnpm/vite@7.3.3_@types+node@25.6.2_jiti@2.7.0_lightningcss@1.32.0_tsx@4.21.0_yaml@2.8.4/node_modules/vite/dist/node/cli.js:629:10)
+21:03:17.222 
+/vercel/path0/artifacts/glo-party-games:
+21:03:17.222 
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @workspace/glo-party-games@0.0.0 build: `vite build --config vite.config.ts`
+21:03:17.222 
+Exit status 1
+21:03:17.239 
+Error: Command "	pnpm install && pnpm run typecheck:libs && pnpm --filter @workspace/glo-party-games run build" exited with 1
