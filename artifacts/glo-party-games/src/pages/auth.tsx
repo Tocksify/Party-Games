@@ -32,7 +32,10 @@ export default function Auth() {
 
   const [guestUsername, setGuestUsername] = useState("");
 
-  const onSuccess = () => {
+  const onSuccess = (data: any) => {
+    if (data?.token) {
+      localStorage.setItem("auth_token", data.token);
+    }
     queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
     setLocation("/");
   };

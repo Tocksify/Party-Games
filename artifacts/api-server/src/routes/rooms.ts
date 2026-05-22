@@ -3,7 +3,8 @@ import { db } from "@workspace/db";
 import { roomsTable, usersTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import crypto from "crypto";
-import { ListRoomsQueryParams, CreateRoomBody, JoinRoomBody } from "@workspace/api-zod";
+import { ListRoomsQueryParams, CreateRoomBody } from "@workspace/api-zod";
+import { requireAuth } from "../middleware/auth";
 
 const router = Router();
 
@@ -45,12 +46,8 @@ router.get("/rooms", async (req, res) => {
   res.json(rooms.map(formatRoom));
 });
 
-router.post("/rooms", async (req, res) => {
-  const userId = (req.session as any).userId;
-  if (!userId) {
-    res.status(401).json({ error: "Not authenticated" });
-    return;
-  }
+router.post("/rooms", requireAuth, async (req, res) => {
+  const userId = req.userId!;
 
   const parse = CreateRoomBody.safeParse(req.body);
   if (!parse.success) {
@@ -82,7 +79,8 @@ router.post("/rooms", async (req, res) => {
 });
 
 router.get("/rooms/:code", async (req, res) => {
-  const [room] = await db.select().from(roomsTable).where(eq(roomsTable.code, req.params.code));
+  const code = req.params["code"] as string;
+  const [room] = await db.select().from(roomsTable).where(eq(roomsTable.code, code));
   if (!room) {
     res.status(404).json({ error: "Room not found" });
     return;
@@ -90,14 +88,11 @@ router.get("/rooms/:code", async (req, res) => {
   res.json(formatRoom(room));
 });
 
-router.delete("/rooms/:code", async (req, res) => {
-  const userId = (req.session as any).userId;
-  if (!userId) {
-    res.status(401).json({ error: "Not authenticated" });
-    return;
-  }
+router.delete("/rooms/:code", requireAuth, async (req, res) => {
+  const userId = req.userId!;
+  const code = req.params["code"] as string;
 
-  const [room] = await db.select().from(roomsTable).where(eq(roomsTable.code, req.params.code));
+  const [room] = await db.select().from(roomsTable).where(eq(roomsTable.code, code));
   if (!room) {
     res.status(404).json({ error: "Room not found" });
     return;
@@ -107,18 +102,15 @@ router.delete("/rooms/:code", async (req, res) => {
     return;
   }
 
-  await db.update(roomsTable).set({ status: "closed" }).where(eq(roomsTable.code, req.params.code));
+  await db.update(roomsTable).set({ status: "closed" }).where(eq(roomsTable.code, code));
   res.json({ message: "Room closed" });
 });
 
-router.post("/rooms/:code/join", async (req, res) => {
-  const userId = (req.session as any).userId;
-  if (!userId) {
-    res.status(401).json({ error: "Not authenticated" });
-    return;
-  }
+router.post("/rooms/:code/join", requireAuth, async (req, res) => {
+  const userId = req.userId!;
+  const code = req.params["code"] as string;
 
-  const [room] = await db.select().from(roomsTable).where(eq(roomsTable.code, req.params.code));
+  const [room] = await db.select().from(roomsTable).where(eq(roomsTable.code, code));
   if (!room) {
     res.status(404).json({ error: "Room not found" });
     return;
@@ -134,7 +126,7 @@ router.post("/rooms/:code/join", async (req, res) => {
 
   const [updated] = await db.update(roomsTable)
     .set({ playerCount: room.playerCount + 1 })
-    .where(eq(roomsTable.code, req.params.code))
+    .where(eq(roomsTable.code, code))
     .returning();
 
   res.json(formatRoom(updated));

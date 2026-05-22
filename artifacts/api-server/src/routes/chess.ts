@@ -3,6 +3,7 @@ import { db } from "@workspace/db";
 import { chessGamesTable, usersTable } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import { RespondChessRequestBody, MakeChessMoveBody } from "@workspace/api-zod";
+import { requireAuth } from "../middleware/auth";
 
 const router = Router();
 
@@ -27,12 +28,8 @@ router.get("/chess/games", async (req, res) => {
   res.json(games.map(formatGame));
 });
 
-router.post("/chess/games", async (req, res) => {
-  const userId = (req.session as any).userId;
-  if (!userId) {
-    res.status(401).json({ error: "Not authenticated" });
-    return;
-  }
+router.post("/chess/games", requireAuth, async (req, res) => {
+  const userId = req.userId!;
 
   const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
   if (!user) {
@@ -59,7 +56,7 @@ router.post("/chess/games", async (req, res) => {
 });
 
 router.get("/chess/games/:id", async (req, res) => {
-  const id = parseInt(req.params.id);
+  const id = parseInt(req.params["id"] as string);
   if (isNaN(id)) {
     res.status(400).json({ error: "Invalid game ID" });
     return;
@@ -73,9 +70,9 @@ router.get("/chess/games/:id", async (req, res) => {
   res.json(formatGame(game));
 });
 
-router.delete("/chess/games/:id", async (req, res) => {
-  const userId = (req.session as any).userId;
-  const id = parseInt(req.params.id);
+router.delete("/chess/games/:id", requireAuth, async (req, res) => {
+  const userId = req.userId!;
+  const id = parseInt(req.params["id"] as string);
 
   const [game] = await db.select().from(chessGamesTable).where(eq(chessGamesTable.id, id));
   if (!game) {
@@ -91,14 +88,10 @@ router.delete("/chess/games/:id", async (req, res) => {
   res.json({ message: "Game withdrawn" });
 });
 
-router.post("/chess/games/:id/request", async (req, res) => {
-  const userId = (req.session as any).userId;
-  if (!userId) {
-    res.status(401).json({ error: "Not authenticated" });
-    return;
-  }
+router.post("/chess/games/:id/request", requireAuth, async (req, res) => {
+  const userId = req.userId!;
+  const id = parseInt(req.params["id"] as string);
 
-  const id = parseInt(req.params.id);
   const [game] = await db.select().from(chessGamesTable).where(eq(chessGamesTable.id, id));
   if (!game) {
     res.status(404).json({ error: "Game not found" });
@@ -131,14 +124,10 @@ router.post("/chess/games/:id/request", async (req, res) => {
   res.json({ message: "Request sent" });
 });
 
-router.post("/chess/games/:id/respond", async (req, res) => {
-  const userId = (req.session as any).userId;
-  if (!userId) {
-    res.status(401).json({ error: "Not authenticated" });
-    return;
-  }
+router.post("/chess/games/:id/respond", requireAuth, async (req, res) => {
+  const userId = req.userId!;
+  const id = parseInt(req.params["id"] as string);
 
-  const id = parseInt(req.params.id);
   const [game] = await db.select().from(chessGamesTable).where(eq(chessGamesTable.id, id));
   if (!game) {
     res.status(404).json({ error: "Game not found" });
@@ -177,14 +166,10 @@ router.post("/chess/games/:id/respond", async (req, res) => {
   }
 });
 
-router.post("/chess/games/:id/move", async (req, res) => {
-  const userId = (req.session as any).userId;
-  if (!userId) {
-    res.status(401).json({ error: "Not authenticated" });
-    return;
-  }
+router.post("/chess/games/:id/move", requireAuth, async (req, res) => {
+  const userId = req.userId!;
+  const id = parseInt(req.params["id"] as string);
 
-  const id = parseInt(req.params.id);
   const [game] = await db.select().from(chessGamesTable).where(eq(chessGamesTable.id, id));
   if (!game) {
     res.status(404).json({ error: "Game not found" });

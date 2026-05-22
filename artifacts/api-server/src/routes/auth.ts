@@ -4,6 +4,8 @@ import { usersTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import crypto from "crypto";
 import { RegisterBody, LoginBody, LoginAsGuestBody, UpdateUsernameBody } from "@workspace/api-zod";
+import { signToken } from "../lib/jwt";
+import { requireAuth } from "../middleware/auth";
 
 const router = Router();
 
@@ -19,13 +21,14 @@ function verifyPassword(password: string, stored: string): boolean {
   return crypto.timingSafeEqual(Buffer.from(hash, "hex"), Buffer.from(derived, "hex"));
 }
 
-function formatUser(user: typeof usersTable.$inferSelect) {
+function formatUser(user: typeof usersTable.$inferSelect, token: string) {
   return {
     id: user.id,
     username: user.username,
     email: user.email ?? null,
     isGuest: user.isGuest,
     createdAt: user.createdAt.toISOString(),
+    token,
   };
 }
 
@@ -55,8 +58,8 @@ router.post("/auth/register", async (req, res) => {
     isGuest: false,
   }).returning();
 
-  (req.session as any).userId = user.id;
-  res.status(201).json(formatUser(user));
+  const token = signToken(user.id);
+  res.status(201).json(formatUser(user, token));
 });
 
 router.post("/auth/login", async (req, res) => {
@@ -77,8 +80,8 @@ router.post("/auth/login", async (req, res) => {
     return;
   }
 
-  (req.session as any).userId = user.id;
-  res.json(formatUser(user));
+  const token = signToken(user.id);
+  res.json(formatUser(user, token));
 });
 
 router.post("/auth/guest", async (req, res) => {
@@ -100,42 +103,32 @@ router.post("/auth/guest", async (req, res) => {
     isGuest: true,
   }).returning();
 
-  (req.session as any).userId = user.id;
-  res.json(formatUser(user));
+  const token = signToken(user.id);
+  res.json(formatUser(user, token));
 });
 
-router.post("/auth/logout", async (req, res) => {
-  const userId = (req.session as any).userId;
-  if (userId) {
-    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
-    if (user?.isGuest) {
-      await db.delete(usersTable).where(eq(usersTable.id, userId));
-    }
+router.post("/auth/logout", requireAuth, async (req, res) => {
+  const userId = req.userId!;
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
+  if (user?.isGuest) {
+    await db.delete(usersTable).where(eq(usersTable.id, userId));
   }
-  req.session.destroy(() => {});
   res.json({ message: "Logged out" });
 });
 
-router.get("/auth/me", async (req, res) => {
-  const userId = (req.session as any).userId;
-  if (!userId) {
-    res.status(401).json({ error: "Not authenticated" });
-    return;
-  }
+router.get("/auth/me", requireAuth, async (req, res) => {
+  const userId = req.userId!;
   const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
   if (!user) {
     res.status(401).json({ error: "Not authenticated" });
     return;
   }
-  res.json(formatUser(user));
+  const { token: _token, ...userWithoutToken } = formatUser(user, "");
+  res.json(userWithoutToken);
 });
 
-router.patch("/auth/me/username", async (req, res) => {
-  const userId = (req.session as any).userId;
-  if (!userId) {
-    res.status(401).json({ error: "Not authenticated" });
-    return;
-  }
+router.patch("/auth/me/username", requireAuth, async (req, res) => {
+  const userId = req.userId!;
   const parse = UpdateUsernameBody.safeParse(req.body);
   if (!parse.success) {
     res.status(400).json({ error: "Invalid username" });
@@ -150,7 +143,8 @@ router.patch("/auth/me/username", async (req, res) => {
   }
 
   const [user] = await db.update(usersTable).set({ username }).where(eq(usersTable.id, userId)).returning();
-  res.json(formatUser(user));
+  const { token: _token, ...userWithoutToken } = formatUser(user, "");
+  res.json(userWithoutToken);
 });
 
 export default router;

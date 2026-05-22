@@ -15,6 +15,7 @@ export default function Settings() {
   const onLogout = () => {
     logoutMutation.mutate(undefined, {
       onSuccess: () => {
+        localStorage.removeItem("auth_token");
         queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
         setLocation("/");
       }
