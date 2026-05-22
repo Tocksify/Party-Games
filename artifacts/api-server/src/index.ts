@@ -1,8 +1,8 @@
 import app from "./app";
 import { logger } from "./lib/logger";
 import { db } from "@workspace/db";
-import { roomsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { roomsTable, chessGamesTable } from "@workspace/db";
+import { eq, inArray } from "drizzle-orm";
 
 const rawPort = process.env["PORT"];
 
@@ -26,9 +26,14 @@ app.listen(port, (err) => {
 
   logger.info({ port }, "Server listening");
 
-  db.update(roomsTable)
-    .set({ status: "closed" })
-    .where(eq(roomsTable.status, "waiting"))
-    .then((result) => logger.info({ result }, "Closed stale waiting rooms on startup"))
-    .catch((err) => logger.error({ err }, "Failed to close stale rooms on startup"));
+  Promise.all([
+    db.update(roomsTable)
+      .set({ status: "closed" })
+      .where(eq(roomsTable.status, "waiting")),
+    db.update(chessGamesTable)
+      .set({ status: "withdrawn" })
+      .where(inArray(chessGamesTable.status, ["open", "pending"])),
+  ])
+    .then(() => logger.info("Cleaned up stale rooms and chess games on startup"))
+    .catch((err) => logger.error({ err }, "Failed to clean up stale data on startup"));
 });
