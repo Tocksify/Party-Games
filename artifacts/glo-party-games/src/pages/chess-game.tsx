@@ -48,10 +48,12 @@ export default function ChessGame() {
     if (gameStatusRef.current && !["open", "pending"].includes(gameStatusRef.current)) return;
     alreadyClosedRef.current = true;
     const apiBase = (import.meta.env.VITE_API_URL ?? "").replace(/\/+$/, "");
+    const token = localStorage.getItem("auth_token");
     fetch(`${apiBase}/api/chess/games/${currentId}`, {
       method: "DELETE",
       credentials: "include",
       keepalive: true,
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
     }).catch(() => {});
   };
 
