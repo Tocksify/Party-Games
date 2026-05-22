@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ChevronLeft } from "lucide-react";
 
 function getErrMsg(err: unknown): string {
-  return (err as any)?.response?.data?.error ?? "Something went wrong";
+  return (err as any)?.data?.error ?? "Something went wrong";
 }
 
 export default function Auth() {
