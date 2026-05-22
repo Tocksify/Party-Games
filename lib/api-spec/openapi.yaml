@@ -3,13 +3,22 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: API specification for Glo's Party Games
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication and user management
+  - name: rooms
+    description: Multiplayer room management
+  - name: chess
+    description: Chess game management
+  - name: stats
+    description: Game statistics
+
 paths:
   /healthz:
     get:
@@ -24,6 +33,483 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      summary: Register a new account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterInput"
+      responses:
+        "201":
+          description: Registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Username or email taken
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Log in to an account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/guest:
+    post:
+      operationId: loginAsGuest
+      tags: [auth]
+      summary: Play as a guest with a chosen username
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GuestInput"
+      responses:
+        "200":
+          description: Guest session created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "409":
+          description: Username taken
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Log out / clear guest session
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user/session
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/me/username:
+    patch:
+      operationId: updateUsername
+      tags: [auth]
+      summary: Update username
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UsernameUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "409":
+          description: Username taken
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /rooms:
+    get:
+      operationId: listRooms
+      tags: [rooms]
+      summary: List rooms for a specific game
+      parameters:
+        - name: game
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [the-signal, thread, blackbox]
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [waiting, in-progress]
+      responses:
+        "200":
+          description: List of rooms
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Room"
+
+    post:
+      operationId: createRoom
+      tags: [rooms]
+      summary: Create a new room
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RoomInput"
+      responses:
+        "201":
+          description: Room created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Room"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /rooms/{code}:
+    get:
+      operationId: getRoom
+      tags: [rooms]
+      summary: Get a room by join code
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Room details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Room"
+        "404":
+          description: Room not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    delete:
+      operationId: closeRoom
+      tags: [rooms]
+      summary: Close / delete a room (host only)
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Room closed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "403":
+          description: Not the host
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /rooms/{code}/join:
+    post:
+      operationId: joinRoom
+      tags: [rooms]
+      summary: Join a room by code
+      parameters:
+        - name: code
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JoinRoomInput"
+      responses:
+        "200":
+          description: Joined room
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Room"
+        "400":
+          description: Room full or invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Room not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /chess/games:
+    get:
+      operationId: listChessGames
+      tags: [chess]
+      summary: List open chess games
+      responses:
+        "200":
+          description: Open chess games
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ChessGame"
+
+    post:
+      operationId: openChessGame
+      tags: [chess]
+      summary: Open a new chess game (seeking opponent)
+      responses:
+        "201":
+          description: Chess game opened
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChessGame"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: You already have an open game
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /chess/games/{id}:
+    get:
+      operationId: getChessGame
+      tags: [chess]
+      summary: Get a chess game by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Chess game
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChessGame"
+        "404":
+          description: Game not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    delete:
+      operationId: closeChessGame
+      tags: [chess]
+      summary: Close/withdraw a chess game
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Game closed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /chess/games/{id}/request:
+    post:
+      operationId: requestChessGame
+      tags: [chess]
+      summary: Request to join an open chess game
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Request sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Game not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Already requested
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /chess/games/{id}/respond:
+    post:
+      operationId: respondChessRequest
+      tags: [chess]
+      summary: Accept or decline a join request (host only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChessRespondInput"
+      responses:
+        "200":
+          description: Response recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChessGame"
+        "403":
+          description: Not the host
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /chess/games/{id}/move:
+    post:
+      operationId: makeChessMove
+      tags: [chess]
+      summary: Make a chess move in an active game
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChessMoveInput"
+      responses:
+        "200":
+          description: Move accepted, updated game state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChessGame"
+        "400":
+          description: Invalid move
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /stats:
+    get:
+      operationId: getStats
+      tags: [stats]
+      summary: Get overall platform statistics
+      responses:
+        "200":
+          description: Platform stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformStats"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +520,226 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        email:
+          type: ["string", "null"]
+        isGuest:
+          type: boolean
+        createdAt:
+          type: string
+      required:
+        - id
+        - username
+        - isGuest
+        - createdAt
+
+    RegisterInput:
+      type: object
+      properties:
+        username:
+          type: string
+          minLength: 2
+          maxLength: 24
+        email:
+          type: string
+        password:
+          type: string
+          minLength: 6
+      required:
+        - username
+        - email
+        - password
+
+    LoginInput:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+      required:
+        - email
+        - password
+
+    GuestInput:
+      type: object
+      properties:
+        username:
+          type: string
+          minLength: 2
+          maxLength: 24
+      required:
+        - username
+
+    UsernameUpdate:
+      type: object
+      properties:
+        username:
+          type: string
+          minLength: 2
+          maxLength: 24
+      required:
+        - username
+
+    Room:
+      type: object
+      properties:
+        id:
+          type: integer
+        code:
+          type: string
+        game:
+          type: string
+          enum: [the-signal, thread, blackbox]
+        name:
+          type: string
+        hostUsername:
+          type: string
+        playerCount:
+          type: integer
+        maxPlayers:
+          type: integer
+        status:
+          type: string
+          enum: [waiting, in-progress, closed]
+        settings:
+          type: object
+          additionalProperties: true
+        createdAt:
+          type: string
+      required:
+        - id
+        - code
+        - game
+        - name
+        - hostUsername
+        - playerCount
+        - maxPlayers
+        - status
+        - createdAt
+
+    RoomInput:
+      type: object
+      properties:
+        game:
+          type: string
+          enum: [the-signal, thread, blackbox]
+        name:
+          type: string
+          minLength: 1
+          maxLength: 40
+        maxPlayers:
+          type: integer
+          minimum: 2
+          maximum: 10
+        settings:
+          type: object
+          additionalProperties: true
+      required:
+        - game
+        - name
+        - maxPlayers
+
+    JoinRoomInput:
+      type: object
+      properties:
+        teamPreference:
+          type: ["string", "null"]
+
+    ChessGame:
+      type: object
+      properties:
+        id:
+          type: integer
+        hostUsername:
+          type: string
+        opponentUsername:
+          type: ["string", "null"]
+        challengerUsername:
+          type: ["string", "null"]
+        status:
+          type: string
+          enum: [open, pending, active, finished, withdrawn]
+        fen:
+          type: ["string", "null"]
+        currentTurn:
+          type: ["string", "null"]
+          enum: [white, black, null]
+        winner:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+      required:
+        - id
+        - hostUsername
+        - status
+        - createdAt
+
+    ChessRespondInput:
+      type: object
+      properties:
+        accept:
+          type: boolean
+        challengerUsername:
+          type: string
+      required:
+        - accept
+        - challengerUsername
+
+    ChessMoveInput:
+      type: object
+      properties:
+        move:
+          type: string
+      required:
+        - move
+
+    PlatformStats:
+      type: object
+      properties:
+        totalUsers:
+          type: integer
+        activeRooms:
+          type: integer
+        openChessGames:
+          type: integer
+        gameBreakdown:
+          type: object
+          properties:
+            theSignal:
+              type: integer
+            thread:
+              type: integer
+            blackbox:
+              type: integer
+          required:
+            - theSignal
+            - thread
+            - blackbox
+      required:
+        - totalUsers
+        - activeRooms
+        - openChessGames
+        - gameBreakdown
