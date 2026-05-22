@@ -5,15 +5,20 @@ import { eq, and } from "drizzle-orm";
 import crypto from "crypto";
 import { ListRoomsQueryParams } from "@workspace/api-zod";
 import { requireAuth } from "../middleware/auth";
-import zod from "zod";
+
+const VALID_GAMES = ["the-signal", "thread", "blackbox"] as const;
+type GameSlug = typeof VALID_GAMES[number];
+
+function parseCreateRoomBody(body: unknown): { game: GameSlug; maxPlayers: number; settings?: Record<string, unknown> } | null {
+  if (!body || typeof body !== "object") return null;
+  const b = body as Record<string, unknown>;
+  if (!VALID_GAMES.includes(b["game"] as GameSlug)) return null;
+  const maxPlayers = Number(b["maxPlayers"]);
+  if (isNaN(maxPlayers) || maxPlayers < 2 || maxPlayers > 10) return null;
+  return { game: b["game"] as GameSlug, maxPlayers, settings: b["settings"] as Record<string, unknown> | undefined };
+}
 
 const router = Router();
-
-const CreateRoomBody = zod.object({
-  game: zod.enum(["the-signal", "thread", "blackbox"]),
-  maxPlayers: zod.number().min(2).max(10),
-  settings: zod.record(zod.string(), zod.unknown()).optional(),
-});
 
 function formatRoom(room: typeof roomsTable.$inferSelect) {
   return {
@@ -56,12 +61,12 @@ router.get("/rooms", async (req, res) => {
 router.post("/rooms", requireAuth, async (req, res) => {
   const userId = req.userId!;
 
-  const parse = CreateRoomBody.safeParse(req.body);
-  if (!parse.success) {
+  const parsed = parseCreateRoomBody(req.body);
+  if (!parsed) {
     res.status(400).json({ error: "Invalid input" });
     return;
   }
-  const { game, maxPlayers, settings } = parse.data;
+  const { game, maxPlayers, settings } = parsed;
 
   const [user] = await db.select().from(usersTable).where(eq(usersTable.id, userId));
   if (!user) {
