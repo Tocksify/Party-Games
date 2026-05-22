@@ -20,15 +20,14 @@ export default function Games() {
   const activeGame = GAMES.find((g) => g.id === hoveredGame);
 
   return (
-    <div className="relative min-h-screen w-full overflow-hidden flex flex-col p-6 md:p-12">
-      {/* Background Ghost Text */}
+    <div className="relative min-h-screen w-full overflow-hidden flex flex-col p-6 md:p-12 bg-black">
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden select-none z-0">
         <AnimatePresence mode="wait">
           {activeGame ? (
             <motion.div
               key={activeGame.id}
               initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 0.08, scale: 1 }}
+              animate={{ opacity: 0.06, scale: 1 }}
               exit={{ opacity: 0, scale: 1.05 }}
               transition={{ duration: 0.5 }}
               className="text-[12vw] font-bold whitespace-nowrap leading-none text-center"
@@ -56,26 +55,26 @@ export default function Games() {
             variant="ghost"
             size="icon"
             onClick={() => setLocation("/")}
-            className="hover:bg-white/10"
+            className="hover:bg-zinc-900 text-zinc-400"
             data-testid="button-back"
           >
             <ChevronLeft className="w-6 h-6" />
           </SoundButton>
-          <div className="text-sm font-mono tracking-widest text-muted-foreground uppercase">
-            Select Protocol
+          <div className="text-sm font-mono tracking-widest text-zinc-500 uppercase">
+            Select a game
           </div>
         </header>
 
-        <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-6 place-content-center">
+        <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4 place-content-center">
           {GAMES.map((game, i) => (
             <motion.div
               key={game.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.1, duration: 0.5 }}
+              transition={{ delay: i * 0.08, duration: 0.4 }}
             >
               <button
-                className="w-full text-left p-8 md:p-12 rounded-xl bg-card/40 border border-white/5 hover:border-white/20 transition-all duration-300 relative overflow-hidden group cursor-pointer backdrop-blur-sm"
+                className="w-full text-left p-8 md:p-10 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-zinc-600 transition-all duration-200 relative overflow-hidden group cursor-pointer"
                 onMouseEnter={() => {
                   audio.playHover();
                   setHoveredGame(game.id);
@@ -87,23 +86,22 @@ export default function Games() {
                 }}
                 data-testid={`card-game-${game.id}`}
               >
-                {/* Glow effect */}
-                <div 
-                  className="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity duration-500 pointer-events-none"
+                <div
+                  className="absolute inset-0 opacity-0 group-hover:opacity-5 transition-opacity duration-500 pointer-events-none"
                   style={{ background: `radial-gradient(circle at center, ${game.color} 0%, transparent 70%)` }}
                 />
-                
+
                 <div className="relative z-10 flex flex-col gap-2">
-                  <span className="text-xs font-mono tracking-widest text-muted-foreground">
+                  <span className="text-xs font-mono tracking-widest text-zinc-600">
                     0{i + 1}
                   </span>
-                  <h2 className="text-3xl md:text-5xl font-bold tracking-tight group-hover:translate-x-2 transition-transform duration-300">
+                  <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-white group-hover:translate-x-1 transition-transform duration-200">
                     {game.name}
                   </h2>
                 </div>
-                
-                <div 
-                  className="absolute bottom-0 left-0 h-1 w-0 group-hover:w-full transition-all duration-500 ease-out"
+
+                <div
+                  className="absolute bottom-0 left-0 h-0.5 w-0 group-hover:w-full transition-all duration-400 ease-out"
                   style={{ backgroundColor: game.color }}
                 />
               </button>
