@@ -138,6 +138,32 @@ router.delete("/rooms/:code", requireAuth, async (req, res) => {
   res.json({ message: "Room closed" });
 });
 
+router.post("/rooms/:code/start", requireAuth, async (req, res) => {
+  const userId = req.userId!;
+  const code = req.params["code"] as string;
+
+  const [room] = await db.select().from(roomsTable).where(eq(roomsTable.code, code));
+  if (!room) {
+    res.status(404).json({ error: "Room not found" });
+    return;
+  }
+  if (room.hostUserId !== userId) {
+    res.status(403).json({ error: "Not the host" });
+    return;
+  }
+  if (room.status !== "waiting") {
+    res.status(400).json({ error: "Room is not in waiting state" });
+    return;
+  }
+
+  const [updated] = await db.update(roomsTable)
+    .set({ status: "active" })
+    .where(eq(roomsTable.code, code))
+    .returning();
+
+  res.json(formatRoom(updated));
+});
+
 router.post("/rooms/:code/join", requireAuth, async (req, res) => {
   const userId = req.userId!;
   const code = req.params["code"] as string;
