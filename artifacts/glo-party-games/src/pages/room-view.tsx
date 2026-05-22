@@ -30,19 +30,14 @@ export default function RoomView() {
   const closeRoom = useCloseRoom();
   const isHost = user && room && user.username === room.hostUsername;
 
-  const isHostRef = useRef(false);
   const codeRef = useRef(code);
-  const roomStatusRef = useRef(room?.status);
   const alreadyClosedRef = useRef(false);
 
-  useEffect(() => { isHostRef.current = !!isHost; }, [isHost]);
   useEffect(() => { codeRef.current = code; }, [code]);
-  useEffect(() => { roomStatusRef.current = room?.status; }, [room?.status]);
 
   const doCloseRoom = () => {
     const currentCode = codeRef.current;
-    if (!currentCode || alreadyClosedRef.current || !isHostRef.current) return;
-    if (roomStatusRef.current && roomStatusRef.current !== "waiting") return;
+    if (!currentCode || alreadyClosedRef.current) return;
     alreadyClosedRef.current = true;
     const apiBase = (import.meta.env.VITE_API_URL ?? "").replace(/\/+$/, "");
     fetch(`${apiBase}/api/rooms/${currentCode}`, {
