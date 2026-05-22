@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { useListChessGames, useOpenChessGame, useRequestChessGame, useRespondChessRequest, getListChessGamesQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -66,15 +65,6 @@ export default function ChessLobby() {
   const openGame = useOpenChessGame();
   const requestGame = useRequestChessGame();
   const respondRequest = useRespondChessRequest();
-
-  useEffect(() => {
-    if (!isAuthenticated || !user) return;
-    const apiBase = (import.meta.env.VITE_API_URL ?? "").replace(/\/+$/, "");
-    fetch(`${apiBase}/api/chess/games/mine`, {
-      method: "DELETE",
-      credentials: "include",
-    }).catch(() => {});
-  }, [isAuthenticated, user?.id]);
 
   const handleOpenGame = () => {
     if (!isAuthenticated) {
